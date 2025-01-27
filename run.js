@@ -37,7 +37,7 @@ const logger = {
         const levelStyle = this._getLevelStyle(level);
         const levelTag = levelStyle(`[${level.toUpperCase()}]`);
 
-        const header = chalk.bgcyan('JAWA IS KUNCI');
+        const header = chalk.cyan('JAWA IS KUNCI');
         const formattedMessage = `${header} ${timestamp} ${levelTag} ${message}`;
 
         let formattedValue = '';
