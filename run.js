@@ -93,6 +93,43 @@ class LayerEdgeConnection {
 async function run() {
     console.log(banner.join('\n'));
     logger.info('JAWA IS KUNCI', 'J.W.P.A');
+
+    const proxies = await readFile('proxy.txt');
+    let wallets = await readFile('wallets.json');
+
+    if (proxies.length === 0) logger.warn('No Proxies', 'Running without proxy support');
+    if (wallets.length === 0) {
+        logger.error('Wallet Configuration Missing', 'Harap tambahkan wallet ke wallets.json');
+        return;
+    }
+
+    logger.info('Memproses Wallet', `Total Wallets: ${wallets.length}`);
+
+    for (const wallet of wallets) {
+        try {
+            const socket = new LayerEdgeConnection(proxies[wallets.indexOf(wallet) % proxies.length] || null, wallet);
+            logger.progress(wallet, 'Memulai Proses Wallet', 'start');
+
+            logger.progress(wallet, 'Memeriksa Status Node', 'processing');
+            const isRunning = await socket.checkNodeStatus();
+
+            if (isRunning) {
+                logger.progress(wallet, 'Menghentikan Node', 'processing');
+                await socket.stopNode();
+            }
+
+            logger.progress(wallet, 'Menghubungkan Ulang Node', 'processing');
+            await socket.connectNode();
+
+            logger.progress(wallet, 'Memeriksa Poin Node', 'processing');
+            await socket.checkNodePoints();
+
+            logger.progress(wallet, 'Selesai', 'success');
+            await delay(3);
+        } catch (error) {
+            logger.error(`Kesalahan pada wallet ${wallet}`, error.message);
+        }
+    }
 }
 
 run();
