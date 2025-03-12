@@ -189,7 +189,8 @@ async function run() {
             await socket.connectNode();
 
             logger.progress(wallet.address, 'Memeriksa Poin Node', 'processing');
-            await socket.checkNodePoints();
+            const points = await socket.checkNodePoints();
+            logger.info(`Poin untuk ${wallet.address}:`, points);
 
             logger.progress(wallet.address, 'Selesai', 'success');
             await delay(3);
