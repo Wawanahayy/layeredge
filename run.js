@@ -105,6 +105,19 @@ class LayerEdgeConnection {
     async makeRequest(method, url, config = {}) {
         return await RequestHandler.makeRequest({ method, url, ...this.axiosConfig, ...config }, 30);
     }
+
+    async checkNodeStatus() {
+        try {
+            const response = await this.makeRequest(
+                "get",
+                `https://referralapi.layeredge.io/api/light-node/node-status/${this.wallet.address}`
+            );
+            return response?.data?.data?.startTimestamp !== null;
+        } catch (error) {
+            logger.error("Gagal memeriksa status node", error.message);
+            return false;
+        }
+    }
 }
 
 // Run Script
