@@ -105,3 +105,73 @@ class LayerEdgeConnection {
 }
 
 
+async function readWallets() {
+    try {
+        await fs.access("wallets.json");
+
+        const data = await fs.readFile("wallets.json", "utf-8");
+        return JSON.parse(data);
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            logger.info("No wallets found in wallets.json");
+            return [];
+        }
+        throw err;
+    }
+}
+
+async function run() {
+    // Display Banner
+    console.log(banner.join('\n'));
+
+    logger.info('JAWA IS KUNCI', 'J.W.P.A');
+    await delay(3);
+
+    const proxies = await readFile('proxy.txt');
+    let wallets = await readWallets();
+    
+    if (proxies.length === 0) logger.warn('No Proxies', 'Running without proxy support');
+    if (wallets.length === 0) {
+        logger.error('Wallet Configuration Missing', 'Create wallets using "npm run autoref"');
+        return;
+    }
+
+    logger.info('Wallet Processing', `Total Wallets: ${wallets.length}`);
+
+    while (true) {
+        for (let i = 0; i < wallets.length; i++) {
+            const wallet = wallets[i];
+            const proxy = proxies[i % proxies.length] || null;
+            const { address, privateKey } = wallet;
+            
+            try {
+                const socket = new LayerEdgeConnection(proxy, privateKey);
+                
+                logger.progress(address, 'Wallet Processing Started', 'start');
+                logger.info(`Wallet Details`, `Address: ${address}, Proxy: ${proxy || 'No Proxy'}`);
+
+                logger.progress(address, 'Checking Node Status', 'processing');
+                const isRunning = await socket.checkNodeStatus();
+
+                if (isRunning) {
+                    logger.progress(address, 'Claiming Node Points', 'processing');
+                    await socket.stopNode();
+                }
+
+                logger.progress(address, 'Reconnecting Node', 'processing');
+                await socket.connectNode();
+
+                logger.progress(address, 'Checking Node Points', 'processing');
+                await socket.checkNodePoints();
+
+                logger.progress(address, 'Wallet Processing Complete', 'success');
+                await delay(3); // Wait 3 seconds before continuing with the next wallet
+            } catch (error) {
+                logger.error(`Error with wallet ${wallet.address}`, error.message);
+            }
+        }
+    }
+}
+
+// Run the bot
+run();
