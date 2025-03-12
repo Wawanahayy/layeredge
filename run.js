@@ -81,6 +81,18 @@ class RequestHandler {
 
 // LayerEdge Connection Class
 class LayerEdgeConnection {
+    async checkNodePoints() {
+        try {
+            const response = await this.makeRequest(
+                "get",
+                `https://referralapi.layeredge.io/api/referral/wallet-details/${this.wallet.address}`
+            );
+            return response?.data?.data?.nodePoints || 0;
+        } catch (error) {
+            logger.error("Gagal memeriksa poin node", error.message);
+            return 0;
+        }
+    }
     async connectNode() {
         try {
             const response = await this.makeRequest(
