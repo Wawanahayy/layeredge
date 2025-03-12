@@ -34,7 +34,25 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms * 1000));
 }
 
-// Read File Function
+// Read Wallets Function
+async function readWallets() {
+    try {
+        const data = await fs.readFile("wallets.json", "utf-8");
+        const wallets = JSON.parse(data);
+        return wallets.filter(wallet => {
+            if (!wallet.privateKey || !wallet.privateKey.startsWith("0x") || wallet.privateKey.length !== 66) {
+                logger.warn(`Wallet tidak valid: ${JSON.stringify(wallet)}`);
+                return false;
+            }
+            return true;
+        });
+    } catch (err) {
+        logger.error("Gagal membaca wallets.json", err.message);
+        return [];
+    }
+}
+
+// Read Proxy File Function
 async function readFile(pathFile) {
     try {
         const datas = await fs.readFile(pathFile, 'utf8');
@@ -66,7 +84,7 @@ class LayerEdgeConnection {
     constructor(proxy = null, privateKey = null, refCode = "T5zRD7dz") {
         this.refCode = refCode;
         this.proxy = proxy;
-        this.wallet = privateKey ? new Wallet(privateKey) : Wallet.createRandom();
+        this.wallet = new Wallet(privateKey);
         this.axiosConfig = {
             ...(this.proxy && { httpsAgent: this.newAgent(this.proxy) }),
             timeout: 60000,
@@ -95,7 +113,7 @@ async function run() {
     logger.info('JAWA IS KUNCI', 'J.W.P.A');
 
     const proxies = await readFile('proxy.txt');
-    let wallets = await readFile('wallets.json');
+    let wallets = await readWallets();
 
     if (proxies.length === 0) logger.warn('No Proxies', 'Running without proxy support');
     if (wallets.length === 0) {
@@ -107,27 +125,27 @@ async function run() {
 
     for (const wallet of wallets) {
         try {
-            const socket = new LayerEdgeConnection(proxies[wallets.indexOf(wallet) % proxies.length] || null, wallet);
-            logger.progress(wallet, 'Memulai Proses Wallet', 'start');
+            const socket = new LayerEdgeConnection(proxies[wallets.indexOf(wallet) % proxies.length] || null, wallet.privateKey);
+            logger.progress(wallet.address, 'Memulai Proses Wallet', 'start');
 
-            logger.progress(wallet, 'Memeriksa Status Node', 'processing');
+            logger.progress(wallet.address, 'Memeriksa Status Node', 'processing');
             const isRunning = await socket.checkNodeStatus();
 
             if (isRunning) {
-                logger.progress(wallet, 'Menghentikan Node', 'processing');
+                logger.progress(wallet.address, 'Menghentikan Node', 'processing');
                 await socket.stopNode();
             }
 
-            logger.progress(wallet, 'Menghubungkan Ulang Node', 'processing');
+            logger.progress(wallet.address, 'Menghubungkan Ulang Node', 'processing');
             await socket.connectNode();
 
-            logger.progress(wallet, 'Memeriksa Poin Node', 'processing');
+            logger.progress(wallet.address, 'Memeriksa Poin Node', 'processing');
             await socket.checkNodePoints();
 
-            logger.progress(wallet, 'Selesai', 'success');
+            logger.progress(wallet.address, 'Selesai', 'success');
             await delay(3);
         } catch (error) {
-            logger.error(`Kesalahan pada wallet ${wallet}`, error.message);
+            logger.error(`Kesalahan pada wallet ${wallet.address}`, error.message);
         }
     }
 }
