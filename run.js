@@ -81,6 +81,18 @@ class RequestHandler {
 
 // LayerEdge Connection Class
 class LayerEdgeConnection {
+    async stopNode() {
+        try {
+            const response = await this.makeRequest(
+                "post",
+                `https://referralapi.layeredge.io/api/light-node/node-action/${this.wallet.address}/stop`
+            );
+            return response?.data?.message === "node action executed successfully";
+        } catch (error) {
+            logger.error("Gagal menghentikan node", error.message);
+            return false;
+        }
+    }
     constructor(proxy = null, privateKey = null, refCode = "T5zRD7dz") {
         this.refCode = refCode;
         this.proxy = proxy;
